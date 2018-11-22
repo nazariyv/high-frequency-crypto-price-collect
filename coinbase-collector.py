@@ -1,5 +1,6 @@
 from cbpro.public_client import PublicClient
 from datetime import datetime
+from logging import handlers
 import traceback
 import argparse
 import asyncio
@@ -8,8 +9,8 @@ import json
 import sys
 import os
 
-from . import chucks_words_of_wisdom as cwow
-
+# Package level imports
+from utils import cwow
 
 # ==================================== COINBASE API SET UP + LOGGER ====================================================
 ISO_DATE = '%Y-%m-%d'
@@ -47,9 +48,13 @@ def create_save_location(path_to_file: str) -> str:
     now_date = now.strftime(ISO_DATE)
     save_file = now_date + '.json'
 
+    if not os.path.exists(path_to_file):
+        os.makedirs(path_to_file)
+
     full_save_path = os.path.join(path_to_file, save_file)
+
     if not os.path.exists(full_save_path):
-        os.makedirs(full_save_path)
+        open(full_save_path, 'a', encoding='utf-8').close()
 
     return full_save_path
 
@@ -63,7 +68,7 @@ async def ob_collector(product_id: str, file) -> None:
     try:
         now = datetime.now()
         print(f'Retrieving ob for {product_id} @ {now}')
-        ob_all = client.get_product_order_book()
+        ob_all = client.get_product_order_book(product_id, 3)
         ob_all['timestamp'] = str(now)
         print(f'Success... @ {datetime.now()}')
         json.dump(ob_all, file)
@@ -80,7 +85,7 @@ async def trades_collector(product_id: str, file) -> None:
 
 
 async def ob_main(product_id: str, freq: int) -> None:
-    assert freq >= 1000, f'The minimum frequency is 1s. Adjust your value: {freq}.'
+    assert freq >= 1, f'The minimum frequency is 1s. Adjust your value: {freq}.'
 
     save_loc = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'ob', product_id)
 
@@ -132,7 +137,7 @@ if __name__ == '__main__':
     parser.add_argument('-availableproducts', '--ap', required=False, help='Use this arg to list all the product-ids '
                                                                            'that you can use in --trades and '
                                                                            '--orderbook.', action='store_true')
-    args = parser.parse_args()
+    args = parser.parse_args(['--p', 'ETH-GBP'])
     # ==================================================================================================================
 
     # print the available coinbase products
@@ -147,3 +152,5 @@ if __name__ == '__main__':
     # collecting ob + trades
     if args.t and args.ob:
         asyncio.run(combined_main(args.p, args.freq))
+
+    asyncio.run(ob_main(args.p, 10))
