@@ -54,7 +54,7 @@ def create_save_location(path_to_file: str) -> str:
     return full_save_path
 
 
-async def ob_collector(product_id: str, file):
+async def ob_collector(product_id: str, file) -> None:
     assert hasattr(file, 'write'), 'Provide a file to write to.'
     assert product_id in products, f'Your product {product_id} is not allowed. Allowed values: {products}.'
 
@@ -75,7 +75,7 @@ async def ob_collector(product_id: str, file):
         pass
 
 
-async def trades_collector(product_id: str, file):
+async def trades_collector(product_id: str, file) -> None:
     pass
 
 
@@ -100,20 +100,21 @@ async def ob_main(product_id: str, freq: int) -> None:
             logger.warning(f'[1]-Error encountered collecting ob data: {error_msg}')
 
 
-async def trades_main():
+async def trades_main() -> None:
     pass
 
 
-async def combined_main():
+async def combined_main(product_id: str, freq: int) -> None:
     """
     Creates to concurrent coroutine tasks: collecting order book and collecting the trades. And awaits completion.
     :return:
     """
-
+    asyncio.gather(ob_main(product_id, freq), trades_main())
     pass
 
 
 if __name__ == '__main__':
+    # ======================================= Arg Parser ===============================================================
     parser = argparse.ArgumentParser(description='Tool to download the order book and/or the trades data from Coinbase '
                                                  'Pro')
     parser.add_argument('-product', '--p', required=True, nargs='?', help='This is the product id for which to '
@@ -131,14 +132,18 @@ if __name__ == '__main__':
     parser.add_argument('-availableproducts', '--ap', required=False, help='Use this arg to list all the product-ids '
                                                                            'that you can use in --trades and '
                                                                            '--orderbook.', action='store_true')
-
     args = parser.parse_args()
+    # ==================================================================================================================
 
-    # https://stackoverflow.com/questions/18025646/python-argparse-conditional-requirements
-
+    # print the available coinbase products
     if args.ap:
         for product in products:
             print(product)
 
+    # collecting just the ob
     if args.ob:
         task = asyncio.create_task(ob_main())
+
+    # collecting ob + trades
+    if args.t and args.ob:
+        asyncio.run(combined_main(args.p, args.freq))
