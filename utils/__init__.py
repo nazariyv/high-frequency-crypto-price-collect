@@ -1,0 +1,1 @@
+from .chuck import chucks_words_of_wisdom as cwow

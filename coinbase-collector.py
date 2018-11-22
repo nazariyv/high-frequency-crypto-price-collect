@@ -67,10 +67,10 @@ async def ob_collector(product_id: str, file) -> None:
 
     try:
         now = datetime.now()
-        print(f'Retrieving ob for {product_id} @ {now}')
+        print(f'{now} - retrieving ob from COINBASE for {product_id}')
         ob_all = client.get_product_order_book(product_id, 3)
         ob_all['timestamp'] = str(now)
-        print(f'Success... @ {datetime.now()}')
+        print(f'{datetime.now()} - success...')
         json.dump(ob_all, file)
     except:
         exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -95,9 +95,6 @@ async def ob_main(product_id: str, freq: int) -> None:
             file = open(full_save_path, 'a', encoding='utf-8')
             await ob_collector(product_id, file)
             await asyncio.sleep(freq)
-        except KeyboardInterrupt:
-            cwow()
-            exit(0)
         except:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             error_msg = repr(traceback.format_exception(exc_type, exc_value, exc_traceback))
@@ -153,4 +150,11 @@ if __name__ == '__main__':
     if args.t and args.ob:
         asyncio.run(combined_main(args.p, args.freq))
 
-    asyncio.run(ob_main(args.p, 10))
+    loop = asyncio.get_event_loop()
+    try:
+        task = loop.create_task(ob_main(args.p, 10))
+        loop.run_until_complete(task)
+    except KeyboardInterrupt:
+        loop.close()
+        cwow()
+        exit(0)
