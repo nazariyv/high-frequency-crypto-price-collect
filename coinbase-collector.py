@@ -27,9 +27,11 @@ LOG_FILENAME = 'reuters_stock_scraper.out'
 # Change level below if you want to log less stuff. For example, up it a notch to INFO.
 logger = logging.getLogger(LOG_FILENAME)
 logger.setLevel(logging.DEBUG)
+logger_folder_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'logs')
+if not os.path.exists(logger_folder_path): os.makedirs(logger_folder_path)
 # Add the log message handler to the logger. (20 MB * 5 = 100 MB Buffer)
 handler = logging.handlers.RotatingFileHandler(
-    os.path.join(os.path.dirname(os.path.realpath(__file__)), 'logs', LOG_FILENAME),
+    os.path.join(logger_folder_path, LOG_FILENAME),
     maxBytes=20000000,
     backupCount=5,
 )
@@ -123,38 +125,39 @@ if __name__ == '__main__':
                                                                           'collect the data. Use --ap to get the '
                                                                           'list of available products.')
     parser.add_argument('-trades', '--t', required=False, help='Will save all the trades for a given product-id on the '
-                                                               'bi-daily basis.', nargs='?')
+                                                               'bi-daily basis.', action='store_true')
     parser.add_argument('-orderbook', '--ob', required=False, help='Will save all levels of the order book for a given '
-                                                                   'product-id on the freq basis.', nargs='?')
+                                                                   'product-id on the freq basis.', action='store_true')
     parser.add_argument('-frequency', '--freq', required=False, help="This is the frequency at which a snapshot of the"
                                                                      " full order book is taken. This arg is to be "
                                                                      "used in conjunction with --ob or -orderbook."
                                                                      " The value is in seconds. So 1 is 1 sec.",
-                        nargs='?', default=1, const=1)
+                        nargs='?', default=1, const=1, type=int)
     parser.add_argument('-availableproducts', '--ap', required=False, help='Use this arg to list all the product-ids '
                                                                            'that you can use in --trades and '
                                                                            '--orderbook.', action='store_true')
-    args = parser.parse_args(['--p', 'ETH-GBP'])
+    args = parser.parse_args()
     # ==================================================================================================================
 
-    # print the available coinbase products
-    if args.ap:
-        for product in products:
-            print(product)
-
-    # collecting just the ob
-    if args.ob:
-        task = asyncio.create_task(ob_main())
-
-    # collecting ob + trades
-    if args.t and args.ob:
-        asyncio.run(combined_main(args.p, args.freq))
-
     loop = asyncio.get_event_loop()
+
     try:
-        task = loop.create_task(ob_main(args.p, 10))
-        loop.run_until_complete(task)
+        # print the available coinbase products
+        if args.ap:
+            for product in products:
+                print(product)
+
+        # collecting just the ob
+        if args.ob:
+            task = loop.create_task(ob_main(args.p, args.freq))
+            loop.run_until_complete(task)
+
+        # collecting ob + trades
+        if args.t and args.ob:
+            asyncio.run(combined_main(args.p, args.freq))
+
     except KeyboardInterrupt:
-        loop.close()
         cwow()
         exit(0)
+    finally:
+        loop.close()
