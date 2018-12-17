@@ -70,7 +70,7 @@ async def ob_collector(product_id: str, file) -> None:
     try:
         now = datetime.now()
         print(f'{now} - retrieving ob from COINBASE for {product_id}')
-        ob_all = client.get_product_order_book(product_id, 3)
+        ob_all = client.get_product_order_book(product_id, 2)
         ob_all['timestamp'] = str(now)
         print(f'{datetime.now()} - success...')
         json.dump(ob_all, file)
