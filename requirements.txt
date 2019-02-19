@@ -1,2 +1,2 @@
-cbpro==1.1.4
+cbpro==1.2.4
 chuck-norris-pythos==1.1
